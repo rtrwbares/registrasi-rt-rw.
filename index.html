@@ -7,9 +7,35 @@
 const URL='https://qnwjyvunsuizxjccmfzd.supabase.co', KEY='sb_publishable_vsCXxYSFcXL_dGt1JzuwKA_qA3nW6ap', BUCKET='foto-warga';
 const db=supabase.createClient(URL,KEY);let data=[],user=null;const $=x=>document.getElementById(x);const say=(id,t)=>$(id).textContent=t;
 function age(d){if(!d)return null;let b=new Date(d+'T00:00:00'),n=new Date(),a=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()==b.getMonth()&&n.getDate()<b.getDate()))a--;return a}
-async function start(){let {data:{session}}=await db.auth.getSession();if(session){user=session.user;await enter()}}
-$('loginBtn').onclick=async()=>{let {data:d,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('pass').value});if(error){say('loginMsg',error.message);return}user=d.user;await enter()};
-async function enter(){let {data:p,error}=await db.from('petugas').select('nama,peran').eq('user_id',user.id).maybeSingle();if(error||!p){await db.auth.signOut();say('loginMsg','Akun belum terdaftar sebagai petugas.');return}$('login').classList.add('hidden');$('app').classList.remove('hidden');say('who',(p.nama||user.email)+' — '+p.peran);await load()}
+async function start(){let {data:{session}}=await db.auth.getSession();if(session){user=session.user;await enter()
+async function enter(){let {data:p,error}=await db.from('petugas'$('loginBtn').onclick=async()=>{
+  try {
+    say('loginMsg','Sedang menghubungkan...');
+    const email=$('email').value.trim();
+    const password=$('pass').value;
+
+    if(!email || !password){
+      say('loginMsg','Email dan password wajib diisi.');
+      return;
+    }
+
+    const {data:d,error}=await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if(error){
+      say('loginMsg','Login gagal: '+error.message);
+      return;
+    }
+
+    user=d.user;
+    await enter();
+
+  } catch(e) {
+    say('loginMsg','Kesalahan koneksi: '+e.message);
+  }
+};).select('nama,peran').eq('user_id',user.id).maybeSingle();if(error||!p){await db.auth.signOut();say('loginMsg','Akun belum terdaftar sebagai petugas.');return}$('login').classList.add('hidden');$('app').classList.remove('hidden');say('who',(p.nama||user.email)+' — '+p.peran);await load()}
 $('logout').onclick=async()=>{await db.auth.signOut();location.reload()};async function load(){let {data:d,error}=await db.from('warga').select('*').order('nama_lengkap');if(error){say('formMsg',error.message);return}data=d||[];render()}
 function render(){let q=$('search').value.toLowerCase(),list=data.filter(r=>[r.nama_lengkap,r.nik,r.nomor_kk].some(x=>String(x||'').toLowerCase().includes(q)));$('rows').innerHTML=list.map(r=>`<tr><td>${esc(r.nama_lengkap)}<br><small>${esc(r.nik)}</small></td><td>${esc(r.jenis_kelamin||'-')}</td><td>${age(r.tanggal_lahir)??'-'}</td><td>${esc(r.nomor_kk||'-')}</td><td><button class="secondary" onclick="edit('${r.id}')">Edit</button><button onclick="del('${r.id}')">Hapus</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada data</td></tr>';let ages=data.map(r=>age(r.tanggal_lahir)).filter(x=>x!==null);$('total').textContent=data.length;$('male').textContent=data.filter(r=>r.jenis_kelamin==='Laki-laki').length;$('female').textContent=data.filter(r=>r.jenis_kelamin==='Perempuan').length;$('child').textContent=ages.filter(x=>x<=17).length;$('age').textContent=`Usia 18–59: ${ages.filter(x=>x>=18&&x<=59).length} | 60+: ${ages.filter(x=>x>=60).length}`}
 function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
